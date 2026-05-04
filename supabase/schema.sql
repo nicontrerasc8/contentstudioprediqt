@@ -265,13 +265,26 @@ create policy brands_select_authenticated
   using (true);
 
 drop policy if exists brands_insert_creator on public.brands;
-create policy brands_insert_creator
+drop policy if exists brands_insert_authenticated on public.brands;
+create policy brands_insert_authenticated
   on public.brands for insert
   to authenticated
   with check (
     created_by = auth.uid()
-    and public.current_app_role() = 'creador'::public.app_role
   );
+
+drop policy if exists brands_update_authenticated on public.brands;
+create policy brands_update_authenticated
+  on public.brands for update
+  to authenticated
+  using (true)
+  with check (true);
+
+drop policy if exists brands_delete_authenticated on public.brands;
+create policy brands_delete_authenticated
+  on public.brands for delete
+  to authenticated
+  using (true);
 
 drop policy if exists brand_embeddings_select_authenticated on public.brand_embeddings;
 create policy brand_embeddings_select_authenticated
@@ -280,7 +293,8 @@ create policy brand_embeddings_select_authenticated
   using (true);
 
 drop policy if exists brand_embeddings_insert_creator on public.brand_embeddings;
-create policy brand_embeddings_insert_creator
+drop policy if exists brand_embeddings_insert_authenticated on public.brand_embeddings;
+create policy brand_embeddings_insert_authenticated
   on public.brand_embeddings for insert
   to authenticated
   with check (
@@ -288,9 +302,14 @@ create policy brand_embeddings_insert_creator
       select 1
       from public.brands
       where brands.id = brand_embeddings.brand_id
-        and brands.created_by = auth.uid()
     )
   );
+
+drop policy if exists brand_embeddings_delete_authenticated on public.brand_embeddings;
+create policy brand_embeddings_delete_authenticated
+  on public.brand_embeddings for delete
+  to authenticated
+  using (true);
 
 drop policy if exists content_generations_select_authenticated on public.content_generations;
 create policy content_generations_select_authenticated

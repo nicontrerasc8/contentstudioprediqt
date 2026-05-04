@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Content Suite",
   description:
-    "AI brand manuals, creative RAG and multimodal audits with Groq and Hugging Face.",
+    "AI brand manuals, creative RAG and multimodal audits with Groq and Gemini.",
 };
 
 export default function RootLayout({

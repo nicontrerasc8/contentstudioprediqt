@@ -9,10 +9,8 @@ import {
   classifyImage,
   classifyVisualSignals,
   describeImage,
-  HF_IMAGE_CLASSIFICATION_MODEL,
-  HF_IMAGE_TO_TEXT_MODEL,
-  HF_ZERO_SHOT_MODEL,
-} from "@/lib/huggingface";
+  GEMINI_VISION_MODEL,
+} from "@/lib/gemini";
 import {
   buildTracePayload,
   errorMessage,
@@ -97,8 +95,8 @@ export async function POST(request: Request) {
     const brand = await getBrandOrThrow(brandIdForTrace);
     const imageBase64 = Buffer.from(await image.arrayBuffer()).toString("base64");
     const [imageDescription, imageLabels] = await Promise.all([
-      describeImage(imageBase64),
-      classifyImage(imageBase64),
+      describeImage(imageBase64, image.type),
+      classifyImage(imageBase64, image.type),
     ]);
     const visualSignals = await classifyVisualSignals({
       imageDescription,
@@ -129,10 +127,8 @@ export async function POST(request: Request) {
         },
         metadata: {
           module: "Governance & Multimodal Audit",
-          provider: "groq+huggingface",
-          captionModel: HF_IMAGE_TO_TEXT_MODEL,
-          imageClassificationModel: HF_IMAGE_TO_TEXT_MODEL,
-          zeroShotModel: HF_IMAGE_TO_TEXT_MODEL,
+          provider: "groq+gemini",
+          visionModel: GEMINI_VISION_MODEL,
         },
         modelParameters: {
           temperature: 0.1,
@@ -194,10 +190,8 @@ export async function POST(request: Request) {
         langfuseTraceId: observedAudit.langfuseTraceId,
         langfuseObservationId: observedAudit.langfuseObservationId,
         metadata: {
-          provider: "groq+huggingface",
-          captionModel: HF_IMAGE_TO_TEXT_MODEL,
-          imageClassificationModel: HF_IMAGE_TO_TEXT_MODEL,
-          zeroShotModel: HF_IMAGE_TO_TEXT_MODEL,
+          provider: "groq+gemini",
+          visionModel: GEMINI_VISION_MODEL,
           result,
         },
       }),

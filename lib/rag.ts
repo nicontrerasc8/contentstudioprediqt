@@ -1,4 +1,4 @@
-import { generateEmbedding } from "@/lib/huggingface";
+import { generateEmbedding } from "@/lib/gemini";
 import { getSupabaseAdminClient } from "@/lib/supabase";
 import type { Brand, RagMatch } from "@/lib/types";
 

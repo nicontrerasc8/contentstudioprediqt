@@ -3,7 +3,7 @@ import type {
   BrandManualRequest,
   CreativeContentType,
 } from "@/lib/types";
-import type { ImageLabel, ZeroShotSignal } from "@/lib/huggingface";
+import type { ImageLabel, ZeroShotSignal } from "@/lib/gemini";
 
 export function buildBrandManualPrompt(input: BrandManualRequest) {
   return `Eres un estratega senior de marca y contenido.

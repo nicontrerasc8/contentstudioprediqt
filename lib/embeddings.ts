@@ -1,4 +1,4 @@
-import { generateEmbedding } from "@/lib/huggingface";
+import { generateEmbedding } from "@/lib/gemini";
 
 const DEFAULT_CHUNK_SIZE = 1200;
 const DEFAULT_OVERLAP = 180;

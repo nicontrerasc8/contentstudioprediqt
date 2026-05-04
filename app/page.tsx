@@ -45,7 +45,7 @@ export default function Home() {
                 <Badge variant="secondary">Next.js 15</Badge>
                 <Badge variant="secondary">Supabase pgvector</Badge>
                 <Badge variant="secondary">Groq Cloud</Badge>
-                <Badge variant="secondary">Hugging Face Vision</Badge>
+                <Badge variant="secondary">Gemini Vision</Badge>
                 <Badge variant="secondary">{roleLabel(profile.role)}</Badge>
                 <Button
                   aria-label="Cerrar sesion"
@@ -63,7 +63,7 @@ export default function Home() {
               <BrandForm
                 accessToken={accessToken}
                 onCreated={refreshWorkspace}
-                role={profile.role}
+                refreshKey={refreshKey}
               />
               <div className="grid gap-6">
                 <CreativePanel
