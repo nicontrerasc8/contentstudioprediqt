@@ -1,34 +1,43 @@
 # Content Suite
 
-Content Suite es una plataforma web para construir, usar y gobernar contenido de marca con IA. El flujo central combina manuales de marca, RAG con embeddings, generacion creativa, auditoria multimodal de imagenes y un circuito de aprobacion por roles.
+Content Suite es una plataforma web para crear, vectorizar, generar y gobernar contenido de marca con IA. El sistema combina manuales de marca, RAG con pgvector, generacion creativa, auditoria multimodal y aprobacion por roles en un solo flujo operativo.
 
-La app esta pensada para equipos de marketing, branding y compliance que necesitan producir piezas rapido sin perder consistencia de marca.
 
-## Lo Que Hace
 
-- Administra marcas con un CRUD completo.
-- Genera manuales de marca accionables con Groq.
-- Vectoriza los manuales con Gemini Embeddings y los guarda en Supabase pgvector.
-- Recupera contexto de marca con RAG antes de generar contenido.
-- Genera contenido creativo listo para revisar.
-- Audita imagenes con Gemini Vision y valida el resultado final con Groq.
-- Guarda trazabilidad local de prompts, modelos, contexto, salidas, errores y latencia.
-- Integra Langfuse de forma opcional para observabilidad externa.
-- Maneja aprobacion en dos niveles: Aprobador A y Aprobador B.
+## Resumen Ejecutivo
 
-## Stack
+Content Suite resuelve un problema comun en equipos de marketing: generar piezas rapido sin perder consistencia, trazabilidad ni control de aprobacion.
+
+El usuario crea una marca, la app genera un manual con Groq, vectoriza ese manual con Gemini Embeddings, recupera contexto por RAG para crear contenido y permite auditar imagenes usando Gemini Vision + Groq. Luego, las piezas pasan por un flujo de governance con Aprobador A y Aprobador B.
+
+## Funcionalidades
+
+| Modulo | Que permite hacer |
+| --- | --- |
+| CRUD de marcas | Crear, editar, regenerar y eliminar marcas con su manual vectorizado |
+| Brand Manual | Generar una guia de marca completa y accionable |
+| RAG | Recuperar chunks relevantes del manual usando pgvector |
+| Creative Engine | Generar descripciones de producto, guiones de video y prompts de imagen |
+| Compliance IA | Validar si el contenido generado respeta el contexto de marca |
+| Multimodal Audit | Auditar imagenes contra el manual de marca |
+| Governance | Revisar y aprobar piezas con flujo A/B |
+| Observabilidad | Ver en la app la tabla `ai_traces` con prompts, outputs, errores, modelos y latencia |
+| Langfuse | Auditar logs en vivo de forma opcional |
+
+## Stack Tecnico
 
 | Capa | Tecnologia |
 | --- | --- |
-| Frontend | Next.js 15 App Router, React 19, TypeScript |
+| Frontend | Next.js 15, App Router, React 19, TypeScript |
 | UI | TailwindCSS, shadcn/ui local, lucide-react |
 | Backend | Route Handlers de Next.js |
-| Auth | Supabase Auth email/password |
+| Auth | Supabase Auth con email/password |
 | Base de datos | Supabase Postgres |
 | Vector search | pgvector con `vector(768)` |
-| LLM texto | Groq Cloud, API compatible OpenAI |
-| Multimodal y embeddings | Gemini API desde Google AI Studio |
-| Observabilidad | `ai_traces` local + Langfuse opcional |
+| Texto IA | Groq Cloud |
+| Embeddings | Gemini `gemini-embedding-001` |
+| Vision | Gemini `gemini-2.5-flash-lite` |
+| Observabilidad | Tabla `ai_traces` |
 
 ## Arquitectura
 
@@ -41,38 +50,53 @@ Next.js App Router
   +-- CRUD de marcas
   |     +-- Groq genera manual de marca
   |     +-- Gemini crea embeddings de 768 dimensiones
-  |     +-- Supabase guarda marca + chunks vectorizados
+  |     +-- Supabase guarda marca y chunks vectorizados
   |
   +-- Creative Engine
   |     +-- Gemini embeddea la consulta
-  |     +-- pgvector recupera chunks relevantes
-  |     +-- Groq genera contenido con contexto RAG
-  |     +-- Groq valida compliance del contenido
+  |     +-- pgvector recupera contexto del manual
+  |     +-- Groq genera contenido
+  |     +-- Groq valida compliance
   |
   +-- Multimodal Audit
-  |     +-- Gemini describe imagen
+  |     +-- Gemini describe la imagen
   |     +-- Gemini extrae etiquetas y senales visuales
-  |     +-- Groq compara evidencia contra manual de marca
+  |     +-- Groq decide si cumple el manual
   |
   +-- Governance
-        +-- Aprobador A registra primera revision
-        +-- Aprobador B decide solo si A aprobo
+        +-- Aprobador A revisa primero
+        +-- Aprobador B da la decision final
 ```
+
+## Flujo Principal
+
+1. El usuario inicia sesion con Supabase Auth.
+2. Crea una marca desde el CRUD.
+3. Groq genera el manual de marca.
+4. La app divide el manual en chunks.
+5. Gemini genera embeddings de 768 dimensiones.
+6. Supabase guarda los embeddings en pgvector.
+7. El usuario genera contenido creativo con contexto RAG.
+8. La app valida compliance con IA.
+9. El usuario audita imagenes contra el manual.
+10. Aprobador A y Aprobador B revisan las piezas en Governance.
 
 ## Modulos
 
-### 1. CRUD de Marcas
+### CRUD de Marcas
 
-La seccion `CRUD de marcas` permite a cualquier usuario autenticado:
+Disponible para todos los usuarios autenticados.
 
-- Crear una marca.
-- Editar una marca existente.
-- Regenerar su manual al guardar cambios.
-- Reemplazar embeddings obsoletos por nuevos embeddings Gemini.
-- Eliminar marca y limpiar datos dependientes.
-- Consultar marcas disponibles para los demas modulos.
+Permite:
 
-Campos principales:
+- Crear marcas.
+- Editar datos de marca.
+- Regenerar el manual al guardar cambios.
+- Reemplazar embeddings antiguos por embeddings nuevos.
+- Eliminar marca y datos asociados.
+- Consultar marcas desde Creative Engine y Multimodal Audit.
+
+Campos:
 
 - Marca
 - Producto
@@ -80,9 +104,9 @@ Campos principales:
 - Publico objetivo
 - Restricciones
 
-Al crear o editar, la app genera un manual completo con Groq, lo divide en chunks y guarda embeddings en `brand_embeddings`.
+Al crear o editar una marca, el sistema regenera el manual y actualiza su base vectorial.
 
-### 2. Brand Manual
+### Brand Manual
 
 El manual generado incluye:
 
@@ -96,67 +120,96 @@ El manual generado incluye:
 - Ejemplos correctos e incorrectos.
 - Checklist de aprobacion.
 
-Este manual es la fuente de verdad para RAG, creatividad y auditoria.
+Este manual se convierte en la fuente de verdad para RAG, generacion creativa y auditoria multimodal.
 
-### 3. Creative Engine
+### Creative Engine
 
-El motor creativo genera piezas usando contexto real del manual de marca.
+Disponible para el rol `creador`.
 
-Tipos soportados:
+Tipos de contenido:
 
 - `descripcion de producto`
 - `guion de video`
 - `prompt de imagen`
 
-Flujo:
+Proceso:
 
-1. El usuario selecciona una marca.
-2. La app recupera contexto con `match_brand_embeddings`.
-3. Groq genera el contenido con el contexto RAG.
-4. Groq ejecuta una validacion posterior de compliance.
-5. La generacion queda guardada como `pendiente` para revision.
+1. Selecciona una marca.
+2. Recupera contexto con `match_brand_embeddings`.
+3. Genera contenido con Groq.
+4. Valida compliance con Groq.
+5. Guarda la pieza como pendiente para governance.
 
-### 4. Multimodal Audit
+### Multimodal Audit
 
-La auditoria multimodal valida imagenes contra el manual de marca.
+Disponible para el rol `creador`.
 
-Flujo:
+Proceso:
 
-1. El usuario sube una imagen.
-2. Gemini Vision genera una descripcion objetiva.
+1. Sube una imagen.
+2. Gemini genera una descripcion objetiva.
 3. Gemini extrae etiquetas visuales.
-4. Gemini calcula senales como tono profesional, estilo premium o riesgo de incumplimiento.
+4. Gemini estima senales de estilo y riesgo.
 5. Groq compara esa evidencia contra el manual.
-6. La app devuelve:
-   - `status`: `check` o `rechazado`
-   - `score`: 0 a 100
-   - `issues`
-   - `recommendation`
+6. La app guarda el resultado para revision.
 
-### 5. Governance
+Resultado:
 
-El panel de gobierno centraliza generaciones creativas y auditorias de imagen.
+```json
+{
+  "status": "check | rechazado",
+  "score": 0,
+  "issues": [],
+  "recommendation": "..."
+}
+```
 
-Roles:
+### Governance
 
-| Rol | Puede hacer |
+El panel de gobierno muestra generaciones creativas y auditorias multimodales.
+
+| Rol | Permisos |
 | --- | --- |
-| `creador` | Crear marcas, generar contenido y auditar imagenes |
-| `aprobador_a` | Revisar primero generaciones y auditorias |
-| `aprobador_b` | Dar decision final solo si Aprobador A aprobo |
+| `creador` | Crea marcas, genera contenido y audita imagenes |
+| `aprobador_a` | Realiza la primera revision |
+| `aprobador_b` | Da la decision final si Aprobador A aprobo |
 
-Nota: el CRUD de marcas esta abierto a todos los usuarios autenticados. Las acciones creativas y de auditoria siguen reservadas al rol `creador`.
+Regla clave:
 
-## IA y Modelos
+```text
+Aprobador B no puede aprobar ni rechazar una pieza si Aprobador A no la aprobo primero.
+```
+
+### AI Traces
+
+Disponible para usuarios autenticados.
+
+La seccion `AI Traces` permite revisar desde la app las ultimas trazas guardadas en `ai_traces`.
+
+Incluye:
+
+- Operacion (`brand_manual`, `creative_generation`, `creative_compliance`, `image_audit`).
+- Modelo usado.
+- Duracion en milisegundos.
+- Prompt enviado.
+- Input estructurado.
+- Output recibido.
+- Contexto RAG o manual usado.
+- Errores, si ocurrieron.
+- Metadata y referencias Langfuse, si existen.
+
+Tambien permite filtrar por tipo de operacion y expandir cada registro para auditar el detalle.
+
+## Modelos de IA
 
 ### Groq
 
-Groq se usa para tareas de texto y decision:
+Se usa para:
 
-- Generacion de manuales.
+- Manuales de marca.
 - Generacion creativa.
-- Validacion de compliance.
-- Auditoria final de marca.
+- Compliance textual.
+- Decision final de auditoria contra el manual.
 
 Variables:
 
@@ -168,53 +221,61 @@ GROQ_TEXT_MODEL=openai/gpt-oss-120b
 
 ### Gemini / Google AI Studio
 
-Gemini se usa para embeddings y multimodal:
+Se usa para:
 
-- `gemini-embedding-001` para embeddings.
-- `gemini-2.5-flash` para vision y analisis multimodal.
+- Embeddings del manual.
+- Analisis multimodal de imagenes.
+- Descripcion visual.
+- Etiquetas visuales.
+- Senales de estilo y riesgo.
 
 Variables:
 
 ```bash
 GEMINI_API_KEY=
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
-GEMINI_VISION_MODEL=gemini-2.5-flash
+GEMINI_VISION_MODEL=gemini-2.5-flash-lite
 GEMINI_EMBED_MODEL=gemini-embedding-001
 ```
 
-La app solicita embeddings con `outputDimensionality: 768`, porque la tabla usa `vector(768)`.
+La app usa `outputDimensionality: 768` para mantener compatibilidad con `brand_embeddings.embedding vector(768)`.
 
-## Base de Datos
+## Supabase
 
-El esquema vive en:
+El esquema principal esta en:
 
 ```bash
 supabase/schema.sql
 ```
 
-Tablas principales:
+Tablas:
 
 | Tabla | Uso |
 | --- | --- |
-| `profiles` | Perfil, nombre y rol de cada usuario |
+| `profiles` | Usuarios, nombres y roles |
 | `brands` | Marcas y manuales generados |
 | `brand_embeddings` | Chunks vectorizados del manual |
-| `content_generations` | Piezas creativas generadas |
+| `content_generations` | Contenido generado |
 | `image_audits` | Auditorias multimodales |
-| `approval_reviews` | Revisiones A/B por pieza |
-| `ai_traces` | Observabilidad local de IA |
+| `approval_reviews` | Revisiones por aprobadores |
+| `ai_traces` | Trazabilidad local de IA |
 
 Funciones:
 
-- `match_brand_embeddings`: busqueda semantica con pgvector.
-- `current_app_role`: helper RLS para conocer el rol del usuario.
-- `touch_updated_at`: actualiza timestamps en tablas con `updated_at`.
+- `match_brand_embeddings`: recuperacion semantica con pgvector.
+- `current_app_role`: obtiene el rol del usuario autenticado.
+- `touch_updated_at`: actualiza timestamps.
 
-RLS esta habilitado en las tablas. El runtime de la app no usa `SUPABASE_SERVICE_ROLE_KEY`: los Route Handlers crean un cliente Supabase con anon key + bearer token del usuario y dejan que RLS controle permisos.
+Seguridad:
+
+- RLS esta habilitado.
+- La app no requiere `SUPABASE_SERVICE_ROLE_KEY` en produccion.
+- Los Route Handlers usan anon key + bearer token del usuario.
+- Las claves privadas de IA se ejecutan solo en servidor.
 
 ## Variables de Entorno
 
-Crea `.env.local` en la raiz:
+Variables recomendadas para produccion:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
@@ -226,13 +287,17 @@ GROQ_TEXT_MODEL=openai/gpt-oss-120b
 
 GEMINI_API_KEY=
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
-GEMINI_VISION_MODEL=gemini-2.5-flash
+GEMINI_VISION_MODEL=gemini-2.5-flash-lite
 GEMINI_EMBED_MODEL=gemini-embedding-001
 
 LANGFUSE_PUBLIC_KEY=
 LANGFUSE_SECRET_KEY=
 LANGFUSE_BASE_URL=https://cloud.langfuse.com
+```
 
+Variables opcionales para crear usuarios demo con el script local:
+
+```bash
 DEMO_CREATOR_EMAIL=creador@content-suite.local
 DEMO_CREATOR_PASSWORD=Creador123!
 DEMO_APPROVER_A_EMAIL=aprobador.a@content-suite.local
@@ -241,66 +306,65 @@ DEMO_APPROVER_B_EMAIL=aprobador.b@content-suite.local
 DEMO_APPROVER_B_PASSWORD=AprobadorB123!
 ```
 
-Notas:
+Nota: `npm run seed:demo-users` usa la Admin API de Supabase y por eso puede requerir `SUPABASE_SERVICE_ROLE_KEY` solo para ese script. La aplicacion desplegada no la necesita.
 
-- `NEXT_PUBLIC_*` puede usarse en cliente.
-- `GROQ_API_KEY`, `GEMINI_API_KEY` y `LANGFUSE_SECRET_KEY` son solo servidor.
-- `SUPABASE_SERVICE_ROLE_KEY` no es necesaria en produccion para la app. Solo el script opcional `npm run seed:demo-users` la necesita porque crea usuarios desde Supabase Admin API.
-- Langfuse es opcional. Si sus variables estan vacias, la app igual guarda trazas en `ai_traces`.
+## Instalacion Local
 
-## Instalacion
-
-1. Instala dependencias:
+1. Instalar dependencias:
 
 ```bash
 npm install
 ```
 
-2. Crea un proyecto en Supabase.
+2. Crear proyecto en Supabase.
 
-3. Ejecuta el SQL:
+3. Ejecutar el SQL:
 
-```bash
+```text
 supabase/schema.sql
 ```
 
-Puedes pegarlo en el SQL Editor de Supabase.
+Pegalo en el SQL Editor de Supabase.
 
-4. Configura `.env.local`.
+4. Configurar `.env.local`.
 
-5. Crea usuarios demo:
+5. Crear usuarios demo, si se desea:
 
 ```bash
 npm run seed:demo-users
 ```
 
-6. Inicia desarrollo:
+6. Iniciar la app:
 
 ```bash
 npm run dev
 ```
 
-Abre:
+URL local:
 
 ```bash
 http://localhost:3000
 ```
 
-## Usuarios Demo
+## Credenciales Demo
 
-| Rol | Email | Password |
-| --- | --- | --- |
-| Creador | `creador@content-suite.local` | `Creador123!` |
-| Aprobador A | `aprobador.a@content-suite.local` | `AprobadorA123!` |
-| Aprobador B | `aprobador.b@content-suite.local` | `AprobadorB123!` |
+Creador  
+Email: `creador@content-suite.local`  
+Contrasena: `Creador123!`
 
-Puedes cambiar estas credenciales con las variables `DEMO_*`.
+Aprobador A  
+Email: `aprobador.a@content-suite.local`  
+Contrasena: `AprobadorA123!`
+
+Aprobador B  
+Email: `aprobador.b@content-suite.local`  
+Contrasena: `AprobadorB123!`
 
 ## API
 
 Todas las rutas esperan:
 
-```bash
+```http
 Authorization: Bearer <supabase_access_token>
 ```
 
@@ -313,7 +377,7 @@ Authorization: Bearer <supabase_access_token>
 | `PATCH` | `/api/brand/manual` | Edita marca, regenera manual y reemplaza embeddings |
 | `DELETE` | `/api/brand/manual?id=<brandId>` | Elimina marca y datos asociados |
 
-### Generacion Creativa
+### Creative Engine
 
 | Metodo | Ruta | Descripcion |
 | --- | --- | --- |
@@ -321,39 +385,63 @@ Authorization: Bearer <supabase_access_token>
 
 Requiere rol `creador`.
 
-### Auditoria Multimodal
+### Multimodal Audit
 
 | Metodo | Ruta | Descripcion |
 | --- | --- | --- |
-| `POST` | `/api/audit/image` | Audita imagen contra manual de marca |
+| `POST` | `/api/audit/image` | Audita imagen contra el manual de marca |
 
 Requiere rol `creador`.
 
-### Gobierno
+### Governance
 
 | Metodo | Ruta | Descripcion |
 | --- | --- | --- |
 | `GET` | `/api/governance/items` | Lista generaciones y auditorias |
 | `PATCH` | `/api/governance/items` | Registra revision A/B |
 
-`PATCH` requiere `aprobador_a` o `aprobador_b`.
+`PATCH` requiere rol `aprobador_a` o `aprobador_b`.
+
+### Observabilidad
+
+| Metodo | Ruta | Descripcion |
+| --- | --- | --- |
+| `GET` | `/api/observability/traces` | Lista las ultimas trazas de IA |
+
+Parametros opcionales:
+
+- `limit`: cantidad de trazas, maximo 100.
+- `operation`: filtra por `brand_manual`, `creative_generation`, `creative_compliance` o `image_audit`.
 
 ## Observabilidad
 
-Cada operacion importante registra una traza en `ai_traces`:
+Cada operacion importante genera una traza en `ai_traces`:
 
-- Operacion (`brand_manual`, `creative_generation`, `creative_compliance`, `image_audit`)
-- Marca relacionada
-- Prompt
-- Contexto RAG o manual
-- Input
-- Output o error
-- Modelo usado
-- Duracion
-- Metadata
-- IDs de Langfuse, si aplica
+- Operacion.
+- Marca relacionada.
+- Prompt.
+- Contexto RAG o manual.
+- Input.
+- Output.
+- Error, si existe.
+- Modelo usado.
+- Duracion.
+- Metadata.
+- IDs de Langfuse, si aplica.
 
-Langfuse se integra desde el backend. Si no configuras Langfuse, la aplicacion sigue funcionando sin dependencia externa.
+Para Langfuse Cloud:
+
+```bash
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+```
+
+Para entregar acceso a logs en vivo, comparte la URL completa del proyecto en Langfuse, por ejemplo:
+
+```text
+https://cloud.langfuse.com/project/tu-project-id
+```
 
 ## Scripts
 
@@ -365,7 +453,7 @@ npm run lint
 npm run seed:demo-users
 ```
 
-## Estructura Del Proyecto
+## Estructura del Proyecto
 
 ```text
 app/
@@ -402,44 +490,42 @@ scripts/
 
 supabase/
   schema.sql
+  missing-access-governance.sql
 ```
 
-## Flujo Recomendado Para Demo
+## Demo Recomendada
 
-1. Inicia sesion como `creador`.
+1. Inicia sesion como Creador.
 2. Crea una marca, por ejemplo `Alicorp`.
-3. Genera el manual y confirma que se guardan chunks en pgvector.
-4. Genera una descripcion de producto o guion de video.
-5. Sube una imagen para auditoria multimodal.
-6. Entra como `aprobador_a` y registra la primera revision.
-7. Entra como `aprobador_b` y da la decision final.
-8. Revisa `ai_traces` o Langfuse para explicar trazabilidad.
-
-## Consideraciones Tecnicas
-
-- Si cambias el modelo de embeddings, revisa la dimension del vector en Supabase.
-- Si ya tenias embeddings de otro proveedor, regenera los manuales para no mezclar espacios vectoriales.
-- El borrado de marca limpia datos asociados desde la API para evitar registros huerfanos.
-- Las llamadas a proveedores externos ocurren solo en servidor.
-- El cliente nunca recibe claves privadas.
+3. Revisa que el manual se genere y se guarden chunks en pgvector.
+4. Genera una descripcion de producto.
+5. Audita una imagen.
+6. Entra como Aprobador A y registra la primera revision.
+7. Entra como Aprobador B y da la decision final.
+8. Muestra `ai_traces` o Langfuse para explicar trazabilidad.
 
 ## Deploy
 
-La app esta lista para Vercel o cualquier hosting compatible con Next.js.
+Checklist:
 
-Checklist de deploy:
-
+- Crear proyecto Supabase.
+- Ejecutar `supabase/schema.sql`.
 - Configurar variables de entorno.
-- Ejecutar `supabase/schema.sql` en el proyecto remoto.
+- Configurar Groq.
+- Configurar Google AI Studio.
+- Configurar Langfuse si se requiere auditoria externa.
 - Crear usuarios demo o usuarios reales.
-- Validar que `GROQ_API_KEY` y `GEMINI_API_KEY` funcionen.
-- Ejecutar `npm run build` antes de publicar.
+- Ejecutar `npm run build`.
+- Desplegar en Vercel o hosting compatible con Next.js.
 
-## Estado Actual
+## Estado Final
 
-- Hugging Face fue removido.
-- Groq queda como motor de texto y decision.
-- Gemini queda como motor multimodal y de embeddings.
-- El CRUD de marcas esta disponible para todos los usuarios autenticados.
-- Creative Engine y Multimodal Audit siguen restringidos al rol `creador`.
-- Governance conserva el flujo A/B de aprobacion.
+- Sin Hugging Face.
+- Sin service role key en produccion.
+- Groq para texto y decisiones.
+- Gemini para embeddings y multimodal.
+- Supabase Auth + RLS para permisos.
+- CRUD de marcas para todos los usuarios autenticados.
+- Creative Engine y Multimodal Audit reservados a `creador`.
+- Governance con aprobacion A/B.
+- Trazabilidad local y Langfuse opcional.

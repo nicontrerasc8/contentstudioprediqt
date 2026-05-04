@@ -1,1 +1,19 @@
-# Proyecto Node.js/Next.js. Las dependencias ejecutables estan en package.json.
+# Content Suite no requiere dependencias Python para ejecutar la aplicacion.
+#
+# Runtime principal:
+# - Node.js 20+
+# - npm
+# - Dependencias definidas en package.json
+#
+# Instalacion:
+# npm install
+#
+# Ejecucion local:
+# npm run dev
+#
+# Build:
+# npm run build
+#
+# Nota:
+# Este archivo se incluye porque algunos entregables lo solicitan, pero la app
+# es un proyecto Next.js/TypeScript y no instala paquetes con pip.

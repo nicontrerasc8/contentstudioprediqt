@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AuthGate } from "@/components/auth-gate";
 import { AuditPanel } from "@/components/audit-panel";
+import { AiTracesPanel } from "@/components/ai-traces-panel";
 import { BrandForm } from "@/components/brand-form";
 import { CreativePanel } from "@/components/creative-panel";
 import { GovernancePanel } from "@/components/governance-panel";
@@ -83,6 +84,8 @@ export default function Home() {
               refreshKey={refreshKey}
               role={profile.role}
             />
+
+            <AiTracesPanel accessToken={accessToken} refreshKey={refreshKey} />
           </div>
         </main>
       )}
