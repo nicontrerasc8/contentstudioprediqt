@@ -96,6 +96,9 @@ export type ImageAudit = {
   brand_id: string;
   created_by: string | null;
   image_name: string;
+  image_storage_path: string | null;
+  image_mime_type: string | null;
+  image_size_bytes: number | null;
   status: ImageAuditStatus;
   score: number;
   issues: Json;
@@ -110,6 +113,7 @@ export type ImageAudit = {
 export type ImageAuditResponse = {
   audit: ImageAudit;
   result: ImageAuditResult;
+  imageUrl?: string | null;
 };
 
 export type RagMatch = {
@@ -190,6 +194,10 @@ export type GovernanceItem = {
   aiStatus?: ImageAuditStatus | ComplianceStatus;
   score?: number;
   issues?: string[];
+  imageUrl?: string | null;
+  imageStoragePath?: string | null;
+  imageMimeType?: string | null;
+  imageSizeBytes?: number | null;
 };
 
 export type Database = {
@@ -274,6 +282,9 @@ export type Database = {
           brand_id: string;
           created_by?: string | null;
           image_name: string;
+          image_storage_path?: string | null;
+          image_mime_type?: string | null;
+          image_size_bytes?: number | null;
           status: ImageAuditStatus;
           score: number;
           issues: Json;

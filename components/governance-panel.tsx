@@ -297,6 +297,28 @@ export function GovernancePanel({
                     </ul>
                   ) : null}
 
+                  {item.imageUrl ? (
+                    <div className="mt-3 overflow-hidden rounded-md border border-border bg-background">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        alt={item.title}
+                        className="max-h-80 w-full object-contain"
+                        src={item.imageUrl}
+                      />
+                      <div className="flex flex-wrap items-center gap-2 border-t border-border p-3 text-xs text-muted-foreground">
+                        <span>{item.imageMimeType || "image"}</span>
+                        {typeof item.imageSizeBytes === "number" ? (
+                          <span>
+                            {(item.imageSizeBytes / 1024 / 1024).toFixed(2)} MB
+                          </span>
+                        ) : null}
+                        {item.imageStoragePath ? (
+                          <span className="truncate">{item.imageStoragePath}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+
                   <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-md bg-background p-3 text-sm leading-relaxed text-foreground">
                     {item.body}
                   </pre>

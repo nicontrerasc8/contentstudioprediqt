@@ -221,6 +221,16 @@ export function AuditPanel({
 
         {result ? (
           <div className="mt-5">
+            {result.imageUrl ? (
+              <div className="mb-4 overflow-hidden rounded-md border border-border bg-muted/30">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  alt={result.audit.image_name}
+                  className="max-h-80 w-full object-contain"
+                  src={result.imageUrl}
+                />
+              </div>
+            ) : null}
             <ResultCard
               data={result.result}
               status={result.result.status === "check" ? "success" : "warning"}

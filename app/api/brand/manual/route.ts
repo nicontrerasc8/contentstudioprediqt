@@ -13,6 +13,7 @@ import {
   runObservedGeneration,
 } from "@/lib/observability";
 import { buildBrandManualPrompt } from "@/lib/prompts";
+import { AUDIT_FILES_BUCKET } from "@/lib/storage";
 import type { BrandManualRequest, Database } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -312,7 +313,10 @@ export async function DELETE(request: Request) {
     const supabase = auth.supabase;
     const [{ data: generations }, { data: audits }] = await Promise.all([
       supabase.from("content_generations").select("id").eq("brand_id", brandId),
-      supabase.from("image_audits").select("id").eq("brand_id", brandId),
+      supabase
+        .from("image_audits")
+        .select("id,image_storage_path")
+        .eq("brand_id", brandId),
     ]);
     const generationIds = (generations || []).map((item) => item.id);
     const auditIds = (audits || []).map((item) => item.id);
@@ -335,6 +339,20 @@ export async function DELETE(request: Request) {
         .delete()
         .eq("item_type", "image_audit")
         .in("item_id", auditIds);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    }
+
+    const storagePaths = (audits || [])
+      .map((item) => item.image_storage_path)
+      .filter((path): path is string => Boolean(path));
+
+    if (storagePaths.length) {
+      const { error } = await supabase.storage
+        .from(AUDIT_FILES_BUCKET)
+        .remove(storagePaths);
 
       if (error) {
         throw new Error(error.message);

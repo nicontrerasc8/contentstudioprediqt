@@ -19,6 +19,11 @@ import {
 } from "@/lib/observability";
 import { buildImageAuditPrompt } from "@/lib/prompts";
 import { getBrandOrThrow } from "@/lib/rag";
+import {
+  AUDIT_FILES_BUCKET,
+  buildAuditFilePath,
+  createAuditFileSignedUrl,
+} from "@/lib/storage";
 import type { Database, ImageAuditResult, ImageAuditStatus } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -72,6 +77,7 @@ export async function POST(request: Request) {
   let brandIdForTrace: string | null = null;
   let prompt = "";
   let supabaseForTrace: SupabaseClient<Database> | null = null;
+  let uploadedPath: string | null = null;
   const startedAt = Date.now();
 
   try {
@@ -95,7 +101,24 @@ export async function POST(request: Request) {
 
     brandIdForTrace = brandId.trim();
     const brand = await getBrandOrThrow(brandIdForTrace, auth.supabase);
-    const imageBase64 = Buffer.from(await image.arrayBuffer()).toString("base64");
+    const imageBuffer = Buffer.from(await image.arrayBuffer());
+    const imageBase64 = imageBuffer.toString("base64");
+    uploadedPath = buildAuditFilePath({
+      userId: auth.user.id,
+      brandId: brand.id,
+      fileName: image.name,
+    });
+    const { error: uploadError } = await auth.supabase.storage
+      .from(AUDIT_FILES_BUCKET)
+      .upload(uploadedPath, imageBuffer, {
+        contentType: image.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw new Error(uploadError.message);
+    }
+
     const [imageDescription, imageLabels] = await Promise.all([
       describeImage(imageBase64, image.type),
       classifyImage(imageBase64, image.type),
@@ -155,6 +178,9 @@ export async function POST(request: Request) {
         brand_id: brand.id,
         created_by: auth.user.id,
         image_name: image.name,
+        image_storage_path: uploadedPath,
+        image_mime_type: image.type,
+        image_size_bytes: image.size,
         status: result.status,
         score: result.score,
         issues: result.issues,
@@ -182,6 +208,7 @@ export async function POST(request: Request) {
           imageName: image.name,
           imageType: image.type,
           imageSize: image.size,
+          imageStoragePath: uploadedPath,
           imageDescription,
           imageLabels,
           visualSignals,
@@ -195,13 +222,22 @@ export async function POST(request: Request) {
           provider: "groq+gemini",
           visionModel: GEMINI_VISION_MODEL,
           result,
+          imageStoragePath: uploadedPath,
         },
       }),
       supabase,
     );
+    const imageUrl = await createAuditFileSignedUrl(supabase, uploadedPath);
 
-    return NextResponse.json({ audit, result });
+    return NextResponse.json({ audit, result, imageUrl });
   } catch (error) {
+    if (uploadedPath && supabaseForTrace) {
+      await supabaseForTrace.storage
+        .from(AUDIT_FILES_BUCKET)
+        .remove([uploadedPath])
+        .catch(() => null);
+    }
+
     if (!(error instanceof AuthError)) {
       await recordAiTrace(
         buildTracePayload({

@@ -20,6 +20,7 @@ El usuario crea una marca, la app genera un manual con Groq, vectoriza ese manua
 | Creative Engine | Generar descripciones de producto, guiones de video y prompts de imagen |
 | Compliance IA | Validar si el contenido generado respeta el contexto de marca |
 | Multimodal Audit | Auditar imagenes contra el manual de marca |
+| Archivos subidos | Guardar imagenes en Supabase Storage y verlas desde la app |
 | Governance | Revisar y aprobar piezas con flujo A/B |
 | Observabilidad | Ver en la app la tabla `ai_traces` con prompts, outputs, errores, modelos y latencia |
 | Langfuse | Auditar logs en vivo de forma opcional |
@@ -147,11 +148,12 @@ Disponible para el rol `creador`.
 Proceso:
 
 1. Sube una imagen.
-2. Gemini genera una descripcion objetiva.
-3. Gemini extrae etiquetas visuales.
-4. Gemini estima senales de estilo y riesgo.
-5. Groq compara esa evidencia contra el manual.
-6. La app guarda el resultado para revision.
+2. La app guarda el archivo en el bucket privado `brand-audit-files`.
+3. Gemini genera una descripcion objetiva.
+4. Gemini extrae etiquetas visuales.
+5. Gemini estima senales de estilo y riesgo.
+6. Groq compara esa evidencia contra el manual.
+7. La app guarda el resultado para revision y muestra la imagen con una URL firmada temporal.
 
 Resultado:
 
@@ -179,6 +181,8 @@ Regla clave:
 ```text
 Aprobador B no puede aprobar ni rechazar una pieza si Aprobador A no la aprobo primero.
 ```
+
+Las auditorias visuales muestran la imagen subida, su tipo MIME, tamano y path interno de Storage.
 
 ### AI Traces
 
@@ -272,6 +276,8 @@ Seguridad:
 - La app no requiere `SUPABASE_SERVICE_ROLE_KEY` en produccion.
 - Los Route Handlers usan anon key + bearer token del usuario.
 - Las claves privadas de IA se ejecutan solo en servidor.
+- Los archivos se guardan en Supabase Storage dentro del bucket privado `brand-audit-files`.
+- La UI usa URLs firmadas temporales para visualizar archivos sin hacerlos publicos.
 
 ## Variables de Entorno
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthStatus, requireAuth } from "@/lib/auth";
+import { createAuditFileSignedUrl } from "@/lib/storage";
 import type {
   ApprovalStatus,
   ApprovalReview,
@@ -152,8 +153,8 @@ export async function GET(request: Request) {
         };
       },
     );
-    const auditItems: GovernanceItem[] = (auditsResult.data || []).map(
-      (audit) => {
+    const auditItems: GovernanceItem[] = await Promise.all(
+      (auditsResult.data || []).map(async (audit) => {
         const reviewA = findReview(
           reviews,
           "image_audit",
@@ -190,8 +191,15 @@ export async function GET(request: Request) {
           aiStatus: audit.status,
           score: audit.score,
           issues: toStringArray(audit.issues),
+          imageUrl: await createAuditFileSignedUrl(
+            supabase,
+            audit.image_storage_path,
+          ),
+          imageStoragePath: audit.image_storage_path,
+          imageMimeType: audit.image_mime_type,
+          imageSizeBytes: audit.image_size_bytes,
         };
-      },
+      }),
     );
     const items = [...contentItems, ...auditItems].sort(
       (left, right) =>

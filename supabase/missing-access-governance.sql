@@ -4,6 +4,20 @@
 create extension if not exists pgcrypto;
 create extension if not exists vector;
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'brand-audit-files',
+  'brand-audit-files',
+  false,
+  10485760,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
 do $$
 begin
   create type public.app_role as enum ('creador', 'aprobador_a', 'aprobador_b');
@@ -50,6 +64,9 @@ alter table public.content_generations
 
 alter table public.image_audits
   add column if not exists created_by uuid references auth.users(id) on delete set null,
+  add column if not exists image_storage_path text,
+  add column if not exists image_mime_type text,
+  add column if not exists image_size_bytes int,
   add column if not exists approval_status text not null default 'pendiente'
     check (approval_status in ('pendiente', 'aprobado', 'rechazado')),
   add column if not exists reviewed_by text,
@@ -115,6 +132,9 @@ create index if not exists image_audits_created_by_idx
 
 create index if not exists image_audits_approval_status_idx
   on public.image_audits(approval_status);
+
+create index if not exists image_audits_storage_path_idx
+  on public.image_audits(image_storage_path);
 
 create index if not exists approval_reviews_item_idx
   on public.approval_reviews(item_type, item_id);
@@ -336,3 +356,24 @@ create policy ai_traces_delete_authenticated
   on public.ai_traces for delete
   to authenticated
   using (true);
+
+drop policy if exists audit_files_select_authenticated on storage.objects;
+create policy audit_files_select_authenticated
+  on storage.objects for select
+  to authenticated
+  using (bucket_id = 'brand-audit-files');
+
+drop policy if exists audit_files_insert_own_folder on storage.objects;
+create policy audit_files_insert_own_folder
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'brand-audit-files'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists audit_files_delete_authenticated on storage.objects;
+create policy audit_files_delete_authenticated
+  on storage.objects for delete
+  to authenticated
+  using (bucket_id = 'brand-audit-files');
