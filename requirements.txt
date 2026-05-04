@@ -1,0 +1,1 @@
+# Proyecto Node.js/Next.js. Las dependencias ejecutables estan en package.json.
