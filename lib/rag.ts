@@ -1,9 +1,11 @@
 import { generateEmbedding } from "@/lib/gemini";
-import { getSupabaseAdminClient } from "@/lib/supabase";
-import type { Brand, RagMatch } from "@/lib/types";
+import type { Brand, Database, RagMatch } from "@/lib/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-export async function getBrandOrThrow(brandId: string): Promise<Brand> {
-  const supabase = getSupabaseAdminClient();
+export async function getBrandOrThrow(
+  brandId: string,
+  supabase: SupabaseClient<Database>,
+): Promise<Brand> {
   const { data, error } = await supabase
     .from("brands")
     .select("*")
@@ -18,20 +20,26 @@ export async function getBrandOrThrow(brandId: string): Promise<Brand> {
 }
 
 export async function getRelevantBrandContext(
+  supabase: SupabaseClient<Database>,
   brandId: string,
   query: string,
   matchCount = 5,
 ) {
-  const matches = await getRelevantBrandMatches(brandId, query, matchCount);
+  const matches = await getRelevantBrandMatches(
+    supabase,
+    brandId,
+    query,
+    matchCount,
+  );
   return formatBrandContext(matches);
 }
 
 export async function getRelevantBrandMatches(
+  supabase: SupabaseClient<Database>,
   brandId: string,
   query: string,
   matchCount = 5,
 ) {
-  const supabase = getSupabaseAdminClient();
   const queryEmbedding = await generateEmbedding(query);
 
   const { data, error } = await supabase.rpc("match_brand_embeddings", {

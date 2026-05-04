@@ -1,6 +1,7 @@
 import type { User } from "@supabase/supabase-js";
-import { getSupabaseAdminClient } from "@/lib/supabase";
-import type { AppRole, Profile } from "@/lib/types";
+import { getSupabaseServerClient } from "@/lib/supabase";
+import type { AppRole, Database, Profile } from "@/lib/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export class AuthError extends Error {
   status: number;
@@ -16,6 +17,7 @@ export type AuthContext = {
   user: User;
   profile: Profile;
   token: string;
+  supabase: SupabaseClient<Database>;
 };
 
 function getBearerToken(request: Request) {
@@ -34,7 +36,7 @@ export async function requireAuth(
   allowedRoles?: AppRole[],
 ): Promise<AuthContext> {
   const token = getBearerToken(request);
-  const supabase = getSupabaseAdminClient();
+  const supabase = getSupabaseServerClient(token);
   const { data: userData, error: userError } =
     await supabase.auth.getUser(token);
 
@@ -60,6 +62,7 @@ export async function requireAuth(
     user: userData.user,
     profile,
     token,
+    supabase,
   };
 }
 

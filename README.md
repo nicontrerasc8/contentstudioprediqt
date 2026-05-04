@@ -210,7 +210,7 @@ Funciones:
 - `current_app_role`: helper RLS para conocer el rol del usuario.
 - `touch_updated_at`: actualiza timestamps en tablas con `updated_at`.
 
-RLS esta habilitado en las tablas. La app usa `SUPABASE_SERVICE_ROLE_KEY` solo en Route Handlers del servidor.
+RLS esta habilitado en las tablas. El runtime de la app no usa `SUPABASE_SERVICE_ROLE_KEY`: los Route Handlers crean un cliente Supabase con anon key + bearer token del usuario y dejan que RLS controle permisos.
 
 ## Variables de Entorno
 
@@ -219,7 +219,6 @@ Crea `.env.local` en la raiz:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
 
 GROQ_API_KEY=
 GROQ_BASE_URL=https://api.groq.com/openai/v1
@@ -245,7 +244,8 @@ DEMO_APPROVER_B_PASSWORD=AprobadorB123!
 Notas:
 
 - `NEXT_PUBLIC_*` puede usarse en cliente.
-- `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY` y `LANGFUSE_SECRET_KEY` son solo servidor.
+- `GROQ_API_KEY`, `GEMINI_API_KEY` y `LANGFUSE_SECRET_KEY` son solo servidor.
+- `SUPABASE_SERVICE_ROLE_KEY` no es necesaria en produccion para la app. Solo el script opcional `npm run seed:demo-users` la necesita porque crea usuarios desde Supabase Admin API.
 - Langfuse es opcional. Si sus variables estan vacias, la app igual guarda trazas en `ai_traces`.
 
 ## Instalacion

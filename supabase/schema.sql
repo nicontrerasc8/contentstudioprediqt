@@ -326,6 +326,19 @@ create policy content_generations_insert_creator
     and public.current_app_role() = 'creador'::public.app_role
   );
 
+drop policy if exists content_generations_update_approver_b on public.content_generations;
+create policy content_generations_update_approver_b
+  on public.content_generations for update
+  to authenticated
+  using (public.current_app_role() = 'aprobador_b'::public.app_role)
+  with check (public.current_app_role() = 'aprobador_b'::public.app_role);
+
+drop policy if exists content_generations_delete_authenticated on public.content_generations;
+create policy content_generations_delete_authenticated
+  on public.content_generations for delete
+  to authenticated
+  using (true);
+
 drop policy if exists image_audits_select_authenticated on public.image_audits;
 create policy image_audits_select_authenticated
   on public.image_audits for select
@@ -340,6 +353,19 @@ create policy image_audits_insert_creator
     created_by = auth.uid()
     and public.current_app_role() = 'creador'::public.app_role
   );
+
+drop policy if exists image_audits_update_approver_b on public.image_audits;
+create policy image_audits_update_approver_b
+  on public.image_audits for update
+  to authenticated
+  using (public.current_app_role() = 'aprobador_b'::public.app_role)
+  with check (public.current_app_role() = 'aprobador_b'::public.app_role);
+
+drop policy if exists image_audits_delete_authenticated on public.image_audits;
+create policy image_audits_delete_authenticated
+  on public.image_audits for delete
+  to authenticated
+  using (true);
 
 drop policy if exists approval_reviews_select_authenticated on public.approval_reviews;
 create policy approval_reviews_select_authenticated
@@ -370,3 +396,27 @@ create policy approval_reviews_update_own_role
     and reviewer_role = public.current_app_role()
     and reviewer_role in ('aprobador_a'::public.app_role, 'aprobador_b'::public.app_role)
   );
+
+drop policy if exists approval_reviews_delete_authenticated on public.approval_reviews;
+create policy approval_reviews_delete_authenticated
+  on public.approval_reviews for delete
+  to authenticated
+  using (true);
+
+drop policy if exists ai_traces_select_authenticated on public.ai_traces;
+create policy ai_traces_select_authenticated
+  on public.ai_traces for select
+  to authenticated
+  using (true);
+
+drop policy if exists ai_traces_insert_authenticated on public.ai_traces;
+create policy ai_traces_insert_authenticated
+  on public.ai_traces for insert
+  to authenticated
+  with check (true);
+
+drop policy if exists ai_traces_delete_authenticated on public.ai_traces;
+create policy ai_traces_delete_authenticated
+  on public.ai_traces for delete
+  to authenticated
+  using (true);

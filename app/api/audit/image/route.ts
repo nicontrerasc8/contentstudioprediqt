@@ -19,8 +19,8 @@ import {
 } from "@/lib/observability";
 import { buildImageAuditPrompt } from "@/lib/prompts";
 import { getBrandOrThrow } from "@/lib/rag";
-import { getSupabaseAdminClient } from "@/lib/supabase";
-import type { ImageAuditResult, ImageAuditStatus } from "@/lib/types";
+import type { Database, ImageAuditResult, ImageAuditStatus } from "@/lib/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
@@ -71,10 +71,12 @@ function normalizeAuditResult(value: Partial<ImageAuditResult>) {
 export async function POST(request: Request) {
   let brandIdForTrace: string | null = null;
   let prompt = "";
+  let supabaseForTrace: SupabaseClient<Database> | null = null;
   const startedAt = Date.now();
 
   try {
     const auth = await requireAuth(request, ["creador"]);
+    supabaseForTrace = auth.supabase;
     const formData = await request.formData();
     const brandId = formData.get("brandId");
     const image = formData.get("image");
@@ -92,7 +94,7 @@ export async function POST(request: Request) {
     }
 
     brandIdForTrace = brandId.trim();
-    const brand = await getBrandOrThrow(brandIdForTrace);
+    const brand = await getBrandOrThrow(brandIdForTrace, auth.supabase);
     const imageBase64 = Buffer.from(await image.arrayBuffer()).toString("base64");
     const [imageDescription, imageLabels] = await Promise.all([
       describeImage(imageBase64, image.type),
@@ -146,7 +148,7 @@ export async function POST(request: Request) {
       parseJsonObject<Partial<ImageAuditResult>>(rawAudit),
     );
 
-    const supabase = getSupabaseAdminClient();
+    const supabase = auth.supabase;
     const { data: audit, error } = await supabase
       .from("image_audits")
       .insert({
@@ -195,6 +197,7 @@ export async function POST(request: Request) {
           result,
         },
       }),
+      supabase,
     );
 
     return NextResponse.json({ audit, result });
@@ -209,6 +212,7 @@ export async function POST(request: Request) {
           error: errorMessage(error),
           durationMs: Date.now() - startedAt,
         }),
+        supabaseForTrace ?? undefined,
       );
     }
 

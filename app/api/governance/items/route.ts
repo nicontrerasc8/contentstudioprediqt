@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getAuthStatus, requireAuth } from "@/lib/auth";
-import { getSupabaseAdminClient } from "@/lib/supabase";
 import type {
   ApprovalStatus,
   ApprovalReview,
@@ -66,8 +65,8 @@ function findReview(
 
 export async function GET(request: Request) {
   try {
-    await requireAuth(request);
-    const supabase = getSupabaseAdminClient();
+    const auth = await requireAuth(request);
+    const supabase = auth.supabase;
     const [brandsResult, contentResult, auditsResult, reviewsResult] =
       await Promise.all([
         supabase.from("brands").select("id,name"),
@@ -230,7 +229,7 @@ export async function PATCH(request: Request) {
       return jsonError(new Error("Solo aprobadores pueden revisar."), 403);
     }
 
-    const supabase = getSupabaseAdminClient();
+    const supabase = auth.supabase;
 
     if (reviewerRole === "aprobador_b") {
       const { data: reviewA, error: reviewAError } = await supabase

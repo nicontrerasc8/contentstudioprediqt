@@ -1,7 +1,7 @@
 import type { NodeSDK } from "@opentelemetry/sdk-node";
 import type { LangfuseGenerationAttributes } from "@langfuse/tracing";
-import { getSupabaseAdminClient } from "@/lib/supabase";
 import type { AiTraceOperation, Database, Json } from "@/lib/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type TraceInsert = Database["public"]["Tables"]["ai_traces"]["Insert"];
 
@@ -142,9 +142,15 @@ export async function runObservedGeneration<T>(
   );
 }
 
-export async function recordAiTrace(input: TraceInsert) {
+export async function recordAiTrace(
+  input: TraceInsert,
+  supabase?: SupabaseClient<Database>,
+) {
   try {
-    const supabase = getSupabaseAdminClient();
+    if (!supabase) {
+      return;
+    }
+
     const { error } = await supabase.from("ai_traces").insert(input);
 
     if (error) {

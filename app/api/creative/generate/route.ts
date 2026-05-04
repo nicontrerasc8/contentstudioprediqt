@@ -20,13 +20,14 @@ import {
   getBrandOrThrow,
   getRelevantBrandMatches,
 } from "@/lib/rag";
-import { getSupabaseAdminClient } from "@/lib/supabase";
 import {
   type CreativeComplianceResult,
   creativeContentTypes,
   type CreativeContentType,
   type CreativeGenerateRequest,
+  type Database,
 } from "@/lib/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
@@ -96,13 +97,16 @@ function normalizeComplianceResult(
 export async function POST(request: Request) {
   let input: CreativeGenerateRequest | null = null;
   let prompt = "";
+  let supabaseForTrace: SupabaseClient<Database> | null = null;
   const startedAt = Date.now();
 
   try {
     const auth = await requireAuth(request, ["creador"]);
+    supabaseForTrace = auth.supabase;
     input = parseCreativeRequest(await request.json());
-    const brand = await getBrandOrThrow(input.brandId);
+    const brand = await getBrandOrThrow(input.brandId, auth.supabase);
     const matches = await getRelevantBrandMatches(
+      auth.supabase,
       input.brandId,
       `${input.type} ${brand.name} ${brand.product} ${brand.audience}`,
     );
@@ -182,7 +186,7 @@ export async function POST(request: Request) {
         ? compliance.revisedOutput
         : observedGeneration.result;
 
-    const supabase = getSupabaseAdminClient();
+    const supabase = auth.supabase;
     const { data: generation, error } = await supabase
       .from("content_generations")
       .insert({
@@ -224,6 +228,7 @@ export async function POST(request: Request) {
         langfuseTraceId: observedGeneration.langfuseTraceId,
         langfuseObservationId: observedGeneration.langfuseObservationId,
       }),
+      supabase,
     );
 
     await recordAiTrace(
@@ -249,6 +254,7 @@ export async function POST(request: Request) {
           issues: compliance.issues,
         },
       }),
+      supabase,
     );
 
     return NextResponse.json({
@@ -269,6 +275,7 @@ export async function POST(request: Request) {
           error: errorMessage(error),
           durationMs: Date.now() - startedAt,
         }),
+        supabaseForTrace ?? undefined,
       );
     }
 

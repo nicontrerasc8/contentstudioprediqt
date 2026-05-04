@@ -13,8 +13,8 @@ import {
   runObservedGeneration,
 } from "@/lib/observability";
 import { buildBrandManualPrompt } from "@/lib/prompts";
-import { getSupabaseAdminClient } from "@/lib/supabase";
-import type { BrandManualRequest } from "@/lib/types";
+import type { BrandManualRequest, Database } from "@/lib/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
@@ -85,7 +85,11 @@ async function generateManual(input: BrandManualRequest) {
   };
 }
 
-async function replaceBrandEmbeddings(brandId: string, manualText: string) {
+async function replaceBrandEmbeddings(
+  supabase: SupabaseClient<Database>,
+  brandId: string,
+  manualText: string,
+) {
   const chunks = chunkText(manualText);
 
   if (!chunks.length) {
@@ -98,7 +102,6 @@ async function replaceBrandEmbeddings(brandId: string, manualText: string) {
     chunk,
     embedding: embeddings[index],
   }));
-  const supabase = getSupabaseAdminClient();
   const { error: deleteError } = await supabase
     .from("brand_embeddings")
     .delete()
@@ -121,8 +124,8 @@ async function replaceBrandEmbeddings(brandId: string, manualText: string) {
 
 export async function GET(request: Request) {
   try {
-    await requireAuth(request);
-    const supabase = getSupabaseAdminClient();
+    const auth = await requireAuth(request);
+    const supabase = auth.supabase;
     const { data, error } = await supabase
       .from("brands")
       .select("id,created_by,name,product,tone,audience,restrictions,created_at")
@@ -141,15 +144,17 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   let input: BrandManualRequest | null = null;
   let prompt = "";
+  let supabaseForTrace: SupabaseClient<Database> | null = null;
   const startedAt = Date.now();
 
   try {
     const auth = await requireAuth(request);
+    supabaseForTrace = auth.supabase;
     input = parseManualRequest(await request.json());
     const generated = await generateManual(input);
     prompt = generated.prompt;
 
-    const supabase = getSupabaseAdminClient();
+    const supabase = auth.supabase;
     const { data: brand, error: brandError } = await supabase
       .from("brands")
       .insert({
@@ -168,7 +173,11 @@ export async function POST(request: Request) {
       throw new Error(brandError.message);
     }
 
-    const chunks = await replaceBrandEmbeddings(brand.id, generated.manualText);
+    const chunks = await replaceBrandEmbeddings(
+      supabase,
+      brand.id,
+      generated.manualText,
+    );
 
     await recordAiTrace(
       buildTracePayload({
@@ -188,6 +197,7 @@ export async function POST(request: Request) {
           chunks,
         },
       }),
+      supabase,
     );
 
     return NextResponse.json({ brand, chunks });
@@ -202,6 +212,7 @@ export async function POST(request: Request) {
           error: errorMessage(error),
           durationMs: Date.now() - startedAt,
         }),
+        supabaseForTrace ?? undefined,
       );
     }
 
@@ -213,17 +224,19 @@ export async function PATCH(request: Request) {
   let input: BrandManualRequest | null = null;
   let brandId: string | null = null;
   let prompt = "";
+  let supabaseForTrace: SupabaseClient<Database> | null = null;
   const startedAt = Date.now();
 
   try {
-    await requireAuth(request);
+    const auth = await requireAuth(request);
+    supabaseForTrace = auth.supabase;
     const body = await request.json();
     brandId = requiredId((body as Record<string, unknown>).id);
     input = parseManualRequest(body);
     const generated = await generateManual(input);
     prompt = generated.prompt;
 
-    const supabase = getSupabaseAdminClient();
+    const supabase = auth.supabase;
     const { data: brand, error: brandError } = await supabase
       .from("brands")
       .update({
@@ -242,7 +255,11 @@ export async function PATCH(request: Request) {
       throw new Error(brandError.message);
     }
 
-    const chunks = await replaceBrandEmbeddings(brand.id, generated.manualText);
+    const chunks = await replaceBrandEmbeddings(
+      supabase,
+      brand.id,
+      generated.manualText,
+    );
 
     await recordAiTrace(
       buildTracePayload({
@@ -263,6 +280,7 @@ export async function PATCH(request: Request) {
           chunks,
         },
       }),
+      supabase,
     );
 
     return NextResponse.json({ brand, chunks });
@@ -278,6 +296,7 @@ export async function PATCH(request: Request) {
           error: errorMessage(error),
           durationMs: Date.now() - startedAt,
         }),
+        supabaseForTrace ?? undefined,
       );
     }
 
@@ -287,10 +306,10 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    await requireAuth(request);
+    const auth = await requireAuth(request);
     const { searchParams } = new URL(request.url);
     const brandId = requiredId(searchParams.get("id"));
-    const supabase = getSupabaseAdminClient();
+    const supabase = auth.supabase;
     const [{ data: generations }, { data: audits }] = await Promise.all([
       supabase.from("content_generations").select("id").eq("brand_id", brandId),
       supabase.from("image_audits").select("id").eq("brand_id", brandId),

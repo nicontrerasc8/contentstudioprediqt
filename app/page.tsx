@@ -42,10 +42,7 @@ export default function Home() {
                 </h1>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">Next.js 15</Badge>
-                <Badge variant="secondary">Supabase pgvector</Badge>
-                <Badge variant="secondary">Groq Cloud</Badge>
-                <Badge variant="secondary">Gemini Vision</Badge>
+              
                 <Badge variant="secondary">{roleLabel(profile.role)}</Badge>
                 <Button
                   aria-label="Cerrar sesion"
